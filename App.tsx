@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Habit, Category, UserProfile, DailyNote, FriendRequest } from './types';
+import { Habit, UserProfile, DailyNote } from './types';
 import HabitCard from './components/HabitCard';
 import HabitForm from './components/HabitForm';
 import StatsView from './components/StatsView';
 import CalendarView from './components/CalendarView';
 import AuthView from './components/AuthView';
-import SocialView from './components/SocialView';
 import ProfileView from './components/ProfileView';
 import AvatarPicker from './components/AvatarPicker';
 import { format, getDay, parseISO } from 'date-fns';
@@ -19,7 +18,7 @@ const App: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [dailyNotes, setDailyNotes] = useState<DailyNote[]>([]);
-  const [activeTab, setActiveTab] = useState<'today' | 'stats' | 'calendar' | 'social' | 'profile'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'stats' | 'calendar' | 'profile'>('today');
   const [showForm, setShowForm] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
@@ -32,7 +31,7 @@ const App: React.FC = () => {
       const profiles = JSON.parse(localStorage.getItem('zenhabits_profiles') || '{}');
       
       if (!profiles[currentUser]) {
-        const newProfile = { username: currentUser, avatar: '👤', friends: [] };
+        const newProfile = { username: currentUser, avatar: '👤' };
         profiles[currentUser] = newProfile;
         localStorage.setItem('zenhabits_profiles', JSON.stringify(profiles));
         setUserProfile(newProfile);
@@ -104,51 +103,6 @@ const App: React.FC = () => {
     }));
   };
 
-  const handleInviteFriend = (targetName: string) => {
-    if (!currentUser) return;
-    const requests: FriendRequest[] = JSON.parse(localStorage.getItem('zenhabits_requests') || '[]');
-    const users = JSON.parse(localStorage.getItem('zenhabits_users') || '{}');
-    if (!users[targetName]) {
-      alert('未找到该用户');
-      return;
-    }
-    if (userProfile?.friends.includes(targetName)) {
-      alert('已经是好友了');
-      return;
-    }
-    const existing = requests.find(r => r.from === currentUser && r.to === targetName && r.status === 'pending');
-    if (existing) {
-      alert('已发送过邀请，请耐心等待对方确认');
-      return;
-    }
-    const newRequest: FriendRequest = {
-      from: currentUser,
-      to: targetName,
-      timestamp: Date.now(),
-      status: 'pending'
-    };
-    localStorage.setItem('zenhabits_requests', JSON.stringify([...requests, newRequest]));
-    alert('好友申请已发送');
-  };
-
-  const handleAcceptInvite = (fromUser: string) => {
-    if (!currentUser) return;
-    const requests: FriendRequest[] = JSON.parse(localStorage.getItem('zenhabits_requests') || '[]');
-    const profiles = JSON.parse(localStorage.getItem('zenhabits_profiles') || '{}');
-    const updatedRequests = requests.map(r => 
-      (r.from === fromUser && r.to === currentUser) ? { ...r, status: 'accepted' as const } : r
-    );
-    localStorage.setItem('zenhabits_requests', JSON.stringify(updatedRequests));
-    const myProfile = profiles[currentUser] || { username: currentUser, avatar: '👤', friends: [] };
-    const friendProfile = profiles[fromUser] || { username: fromUser, avatar: '👤', friends: [] };
-    if (!myProfile.friends.includes(fromUser)) myProfile.friends.push(fromUser);
-    if (!friendProfile.friends.includes(currentUser)) friendProfile.friends.push(currentUser);
-    profiles[currentUser] = myProfile;
-    profiles[fromUser] = friendProfile;
-    localStorage.setItem('zenhabits_profiles', JSON.stringify(profiles));
-    if (currentUser) setUserProfile({ ...myProfile });
-  };
-
   const updateAvatar = (avatar: string) => {
     setUserProfile(prev => prev ? { ...prev, avatar } : null);
     setShowAvatarPicker(false);
@@ -176,12 +130,6 @@ const App: React.FC = () => {
 
   const completedCount = displayedHabits.filter(h => h.completedDays.includes(selectedDate)).length;
   const progressPercent = displayedHabits.length > 0 ? Math.round((completedCount / displayedHabits.length) * 100) : 0;
-
-  const pendingCount = useMemo(() => {
-    if (!currentUser) return 0;
-    const requests: FriendRequest[] = JSON.parse(localStorage.getItem('zenhabits_requests') || '[]');
-    return requests.filter(r => r.to === currentUser && r.status === 'pending').length;
-  }, [currentUser, activeTab]);
 
   if (!currentUser) return <AuthView onLogin={handleLogin} />;
 
@@ -271,7 +219,6 @@ const App: React.FC = () => {
 
         {activeTab === 'stats' && <StatsView habits={habits} />}
         {activeTab === 'calendar' && <CalendarView habits={habits} selectedDate={selectedDate} setSelectedDate={setSelectedDate} />}
-        {activeTab === 'social' && <SocialView currentUser={currentUser || ''} friends={userProfile?.friends || []} onInviteFriend={handleInviteFriend} onAcceptInvite={handleAcceptInvite} />}
         {activeTab === 'profile' && <ProfileView username={currentUser || ''} profile={userProfile} onLogout={logout} onChangeAvatar={() => setShowAvatarPicker(true)} habits={habits} />}
       </main>
 
@@ -279,7 +226,6 @@ const App: React.FC = () => {
         <div className="max-w-md mx-auto flex items-center justify-around">
           <NavButton active={activeTab === 'today'} onClick={() => setActiveTab('today')} icon="fa-house-chimney" label="日程" />
           <NavButton active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} icon="fa-calendar-days" label="日历" />
-          <NavButton active={activeTab === 'social'} onClick={() => setActiveTab('social')} icon="fa-user-group" label="好友" badge={pendingCount} />
           <NavButton active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} icon="fa-chart-simple" label="统计" />
           <NavButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon="fa-user" label="我的" />
         </div>
@@ -291,7 +237,7 @@ const App: React.FC = () => {
   );
 };
 
-const NavButton: React.FC<{ active: boolean, onClick: () => void, icon: string, label: string, badge?: number }> = ({ active, onClick, icon, label, badge }) => (
+const NavButton: React.FC<{ active: boolean, onClick: () => void, icon: string, label: string }> = ({ active, onClick, icon, label }) => (
   <button 
     onClick={(e) => {
       e.preventDefault();
@@ -301,9 +247,6 @@ const NavButton: React.FC<{ active: boolean, onClick: () => void, icon: string, 
   >
     <div className="text-lg mb-0.5">
       <i className={`fa-solid ${icon}`}></i>
-      {badge ? badge > 0 && (
-        <span className="absolute top-2.5 right-3 w-4 h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white">{badge}</span>
-      ) : null}
     </div>
     <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
   </button>

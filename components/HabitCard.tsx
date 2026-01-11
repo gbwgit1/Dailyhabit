@@ -67,20 +67,20 @@ const HabitCard: React.FC<HabitCardProps> = ({ habit, selectedDate, onToggle, on
             : 'border-white bg-white shadow-sm'}
     `}>
       <div className="flex items-center gap-3">
-        {/* Icon Container with Animation */}
+        {/* Icon Container */}
         <div className={`relative w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-sm transition-all duration-500 flex-shrink-0
           ${isAnimating ? 'rotate-[12deg] scale-110' : ''}
           ${isCompleted ? 'bg-slate-200 text-slate-500' : 
             isMissed ? 'bg-rose-50 text-rose-400' : `${styles.bg} ${styles.color}`}`}>
           <i className={`fa-solid ${habit.icon}`}></i>
           {isCompleted && (
-            <div className={`absolute -top-1 -right-1 bg-emerald-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[8px] shadow-sm border-2 border-white transition-transform duration-300 ${isAnimating ? 'scale-125' : 'scale-100'}`}>
+            <div className="absolute -top-1 -right-1 bg-emerald-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[8px] shadow-sm border-2 border-white">
               <i className="fa-solid fa-check"></i>
             </div>
           )}
         </div>
         
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0" onClick={onEdit}>
           <div className="flex items-center gap-2">
             <h3 className={`font-bold truncate text-sm transition-all duration-300 ${isCompleted ? 'text-slate-400 line-through' : isMissed ? 'text-rose-900/80' : 'text-slate-800'}`}>
               {habit.title}
@@ -111,23 +111,36 @@ const HabitCard: React.FC<HabitCardProps> = ({ habit, selectedDate, onToggle, on
         </div>
 
         <div className="flex items-center gap-2">
-           <button 
-            onClick={handleToggle}
-            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 flex-shrink-0 shadow-sm
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1 mr-1">
+             <button 
+               onClick={(e) => { e.stopPropagation(); onEdit(); }} 
+               className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-all"
+               title="编辑"
+             >
+               <i className="fa-solid fa-pen-to-square text-xs"></i>
+             </button>
+             <button 
+               onClick={(e) => { e.stopPropagation(); onDelete(); }} 
+               className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-200 hover:text-rose-400 hover:bg-rose-50 transition-all"
+               title="删除"
+             >
+               <i className="fa-solid fa-trash-can text-xs"></i>
+             </button>
+          </div>
+
+          <button 
+            onClick={(e) => { e.stopPropagation(); handleToggle(); }}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 flex-shrink-0 shadow-sm
               ${isAnimating ? 'scale-110' : ''}
               ${isCompleted 
                 ? 'bg-emerald-500 text-white ring-4 ring-emerald-50' 
                 : isMissed 
                   ? 'bg-white border border-rose-100 text-rose-400' 
-                  : 'bg-white border border-slate-50 text-slate-200 hover:text-indigo-500'}`}
+                  : 'bg-white border border-slate-100 text-slate-300 hover:text-indigo-500 hover:border-indigo-100'}`}
           >
             <i className={`fa-solid ${isCompleted ? 'fa-check-double' : 'fa-check'} text-base ${isAnimating ? 'animate-bounce' : ''}`}></i>
           </button>
-          
-          <div className="hidden sm:flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={onEdit} className="text-slate-300 hover:text-indigo-500 p-1"><i className="fa-solid fa-pen-to-square text-[10px]"></i></button>
-            <button onClick={onDelete} className="text-slate-200 hover:text-rose-400 p-1"><i className="fa-solid fa-trash-can text-[10px]"></i></button>
-          </div>
         </div>
       </div>
     </div>

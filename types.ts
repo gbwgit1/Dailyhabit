@@ -28,18 +28,17 @@ export interface Habit {
 export interface UserProfile {
   username: string;
   avatar: string;
-  friends: string[]; // List of usernames
-  lastProgress?: number; // Cache for social view
-}
-
-export interface FriendRequest {
-  from: string;
-  to: string;
-  timestamp: number;
-  status: 'pending' | 'accepted' | 'declined';
 }
 
 export interface DailyNote {
   date: string; // "YYYY-MM-DD"
   text: string;
+}
+
+// Added FriendRequest interface to support social features
+export interface FriendRequest {
+  from: string;
+  to: string;
+  status: 'pending' | 'accepted' | 'declined';
+  timestamp: number;
 }

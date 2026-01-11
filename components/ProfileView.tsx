@@ -12,6 +12,7 @@ interface ProfileViewProps {
 
 const ProfileView: React.FC<ProfileViewProps> = ({ username, profile, onLogout, onChangeAvatar, habits }) => {
   const totalCompleted = habits.reduce((acc, h) => acc + (h.completedDays?.length || 0), 0);
+  const activeHabits = habits.length;
   
   const handleLogoutClick = () => {
     if (window.confirm('确定要退出当前账号吗？您的数据将保留在本地。')) {
@@ -40,8 +41,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ username, profile, onLogout, 
             <p className="text-xl font-black text-indigo-600">{totalCompleted}</p>
           </div>
           <div className="bg-slate-50/50 p-4 rounded-2xl">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">好友数量</p>
-            <p className="text-xl font-black text-indigo-600">{profile?.friends?.length || 0}</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">活跃计划</p>
+            <p className="text-xl font-black text-indigo-600">{activeHabits}</p>
           </div>
         </div>
       </div>
@@ -50,26 +51,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ username, profile, onLogout, 
         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">账号设置</h3>
         
         <div className="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-slate-50">
-          <button className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors border-b border-slate-50">
-            <div className="flex items-center gap-4 text-slate-700">
-              <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
-                <i className="fa-solid fa-bell"></i>
-              </div>
-              <span className="text-sm font-bold">通知提醒</span>
-            </div>
-            <i className="fa-solid fa-chevron-right text-[10px] text-slate-300"></i>
-          </button>
-          
-          <button className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors border-b border-slate-50">
-            <div className="flex items-center gap-4 text-slate-700">
-              <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
-                <i className="fa-solid fa-shield-halved"></i>
-              </div>
-              <span className="text-sm font-bold">隐私与安全</span>
-            </div>
-            <i className="fa-solid fa-chevron-right text-[10px] text-slate-300"></i>
-          </button>
-
           <button 
             onClick={handleLogoutClick}
             className="w-full flex items-center justify-between p-5 hover:bg-rose-50 transition-colors text-rose-500"

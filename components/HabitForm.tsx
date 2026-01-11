@@ -40,7 +40,7 @@ const HabitForm: React.FC<HabitFormProps> = ({ onClose, onSubmit, initialData })
       title, 
       category, 
       icon, 
-      color: COLORS[0], 
+      color: initialData?.color || COLORS[0], 
       frequency, 
       frequencyConfig 
     });
@@ -61,10 +61,10 @@ const HabitForm: React.FC<HabitFormProps> = ({ onClose, onSubmit, initialData })
           <div className="flex justify-between items-center mb-8">
             <div>
               <h2 className="text-2xl font-bold text-slate-800">
-                {initialData ? '修改计划' : '定制新计划'}
+                {initialData ? '编辑计划' : '定制新计划'}
               </h2>
               <p className="text-slate-400 text-xs mt-1">
-                {initialData ? '优化你的目标，让生活更从容' : '坚持就是胜利，从一小步开始'}
+                {initialData ? '随时调整目标，适应生活变化' : '好的开始是成功的一半'}
               </p>
             </div>
             <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all">
@@ -74,7 +74,7 @@ const HabitForm: React.FC<HabitFormProps> = ({ onClose, onSubmit, initialData })
 
           <form onSubmit={handleSubmit} className="space-y-8">
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">计划内容</label>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">计划名称</label>
               <input
                 autoFocus
                 type="text"
@@ -164,7 +164,7 @@ const HabitForm: React.FC<HabitFormProps> = ({ onClose, onSubmit, initialData })
               type="submit"
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-[1.5rem] shadow-xl shadow-indigo-100 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              {initialData ? '保存修改' : '开始这段旅程'}
+              {initialData ? '保存修改' : '立即开启'}
             </button>
           </form>
         </div>
