@@ -85,7 +85,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ username, profile, onLogout, 
       </div>
 
       <p className="text-center text-slate-300 text-[9px] font-bold uppercase tracking-widest py-4">
-        ZenHabit v1.0.0
+        DailyHabit v1.0.0
       </p>
     </div>
   );
