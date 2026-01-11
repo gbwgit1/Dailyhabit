@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { Habit } from '../types';
+import { Habit, Category } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { format, subDays, eachDayOfInterval, parseISO } from 'date-fns';
 
@@ -29,8 +29,11 @@ const StatsView: React.FC<StatsViewProps> = ({ habits }) => {
   const categoryData = useMemo(() => {
     const data: Record<string, number> = {};
     habits.forEach(h => {
-      if (h.completedDays) {
-        data[h.category] = (data[h.category] || 0) + h.completedDays.length;
+      if (h.completedDays && h.completedDays.length > 0) {
+        // Since habits can have multiple categories, we count completion for each category it belongs to
+        h.categories.forEach(cat => {
+          data[cat] = (data[cat] || 0) + h.completedDays.length;
+        });
       }
     });
     return Object.entries(data)

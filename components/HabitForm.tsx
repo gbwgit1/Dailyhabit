@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Habit, Category, FrequencyType } from '../types';
-import { CATEGORY_STYLES, COLORS } from '../constants';
+import { CATEGORY_STYLES, COLORS as PRESET_COLORS } from '../constants';
 
 interface HabitFormProps {
   onClose: () => void;
@@ -9,26 +9,22 @@ interface HabitFormProps {
   initialData?: Habit | null;
 }
 
-const ICONS = [
-  'fa-heart-pulse', 'fa-spa', 'fa-book-open', 'fa-briefcase', 'fa-star', 
-  'fa-dumbbell', 'fa-bicycle', 'fa-music', 'fa-code', 'fa-mug-hot',
-  'fa-apple-whole', 'fa-bed', 'fa-camera', 'fa-palette', 'fa-pen-nib',
-  'fa-leaf', 'fa-water', 'fa-brain', 'fa-comments', 'fa-wallet'
-];
-
 const WEEK_DAYS = ['日', '一', '二', '三', '四', '五', '六'];
 
 const HabitForm: React.FC<HabitFormProps> = ({ onClose, onSubmit, initialData }) => {
   const [title, setTitle] = useState(initialData?.title || '');
-  const [category, setCategory] = useState<Category>(initialData?.category || Category.HEALTH);
-  const [icon, setIcon] = useState(initialData?.icon || ICONS[0]);
+  const [categories, setCategories] = useState<Category[]>(initialData?.categories || [Category.HEALTH]);
+  const [color, setColor] = useState(initialData?.color || PRESET_COLORS[0]);
   const [frequency, setFrequency] = useState<FrequencyType>(initialData?.frequency || 'daily');
   const [selectedDays, setSelectedDays] = useState<number[]>(initialData?.frequencyConfig?.days || [1, 2, 3, 4, 5]);
   const [weeklyCount, setWeeklyCount] = useState(initialData?.frequencyConfig?.count || 3);
 
+  // Automatically determine the icon based on the first selected category
+  const icon = categories.length > 0 ? CATEGORY_STYLES[categories[0]].icon : 'fa-star';
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || categories.length === 0) return;
     
     const frequencyConfig = frequency === 'weekly_days' 
       ? { days: selectedDays } 
@@ -38,9 +34,9 @@ const HabitForm: React.FC<HabitFormProps> = ({ onClose, onSubmit, initialData })
 
     onSubmit({ 
       title, 
-      category, 
+      categories, 
       icon, 
-      color: initialData?.color || COLORS[0], 
+      color, 
       frequency, 
       frequencyConfig 
     });
@@ -52,6 +48,18 @@ const HabitForm: React.FC<HabitFormProps> = ({ onClose, onSubmit, initialData })
         ? prev.filter(d => d !== dayIndex) 
         : [...prev, dayIndex]
     );
+  };
+
+  const toggleCategory = (cat: Category) => {
+    setCategories(prev => {
+      // If adding, make it the primary (first) category
+      if (!prev.includes(cat)) {
+        return [cat, ...prev];
+      }
+      // If removing, don't allow 0 categories
+      if (prev.length === 1) return prev;
+      return prev.filter(c => c !== cat);
+    });
   };
 
   return (
@@ -72,7 +80,7 @@ const HabitForm: React.FC<HabitFormProps> = ({ onClose, onSubmit, initialData })
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">计划名称</label>
               <input
@@ -81,8 +89,74 @@ const HabitForm: React.FC<HabitFormProps> = ({ onClose, onSubmit, initialData })
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="例如：每天喝 8 杯水..."
-                className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-4 outline-none transition-all text-slate-800 font-medium"
+                className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-4 outline-none transition-all text-slate-800 font-medium shadow-inner"
               />
+            </div>
+
+            <div className="flex items-end gap-6">
+              <div className="flex-1">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">主题配色</label>
+                <div className="flex flex-wrap gap-2 p-2 bg-slate-50 rounded-2xl border border-slate-100">
+                  {PRESET_COLORS.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setColor(c)}
+                      className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${color === c ? 'ring-2 ring-offset-2 ring-slate-300 scale-110' : 'hover:scale-105'}`}
+                      style={{ backgroundColor: c }}
+                    >
+                      {color === c && <i className="fa-solid fa-check text-[10px] text-white"></i>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col items-center">
+                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">预览</label>
+                 <div className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg text-white transition-all duration-500" style={{ backgroundColor: color }}>
+                    <i className={`fa-solid ${icon} text-lg`}></i>
+                 </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">所属分类 (首选决定图标)</label>
+              <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                {Object.values(Category).map(cat => {
+                  const isSelected = categories.includes(cat);
+                  const isPrimary = categories[0] === cat;
+                  const style = CATEGORY_STYLES[cat];
+                  const displayName = {
+                    [Category.HEALTH]: '健康',
+                    [Category.WORK]: '工作',
+                    [Category.LEARNING]: '学习',
+                    [Category.MIND]: '正念',
+                    [Category.OTHER]: '其他',
+                    [Category.FINANCE]: '财务',
+                    [Category.SOCIAL]: '社交',
+                    [Category.CREATIVE]: '创意',
+                    [Category.HOME]: '居家',
+                    [Category.READING]: '阅读'
+                  }[cat];
+                  
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => toggleCategory(cat)}
+                      className={`px-3 py-2.5 rounded-xl text-[11px] font-bold transition-all border-2 flex items-center justify-between
+                        ${isSelected 
+                          ? `${style.bg} ${style.color} border-current` 
+                          : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <i className={`fa-solid ${style.icon} text-[10px]`}></i>
+                        {displayName}
+                      </div>
+                      {isPrimary && <div className="w-1.5 h-1.5 rounded-full bg-current"></div>}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div>
@@ -132,37 +206,14 @@ const HabitForm: React.FC<HabitFormProps> = ({ onClose, onSubmit, initialData })
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">所属分类</label>
-                <select 
-                  value={category} 
-                  onChange={(e) => setCategory(e.target.value as Category)}
-                  className="w-full bg-slate-50 rounded-xl px-4 py-3 text-sm font-medium outline-none border-2 border-transparent focus:border-indigo-500"
-                >
-                  {Object.values(Category).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">个性图标</label>
-                <div className="grid grid-cols-5 gap-2 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
-                  {ICONS.map((i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setIcon(i)}
-                      className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${icon === i ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
-                    >
-                      <i className={`fa-solid ${i} text-sm`}></i>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
             <button
               type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-[1.5rem] shadow-xl shadow-indigo-100 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              disabled={!title.trim() || categories.length === 0}
+              className={`w-full font-bold py-5 rounded-[1.5rem] shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] mt-4 text-white
+                ${(!title.trim() || categories.length === 0) 
+                  ? 'bg-slate-100 text-slate-300 shadow-none cursor-not-allowed' 
+                  : 'shadow-lg'}`}
+              style={(!title.trim() || categories.length === 0) ? {} : { backgroundColor: color }}
             >
               {initialData ? '保存修改' : '立即开启'}
             </button>
