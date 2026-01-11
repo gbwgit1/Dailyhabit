@@ -282,7 +282,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ habits, todos, selectedDate
                      </div>
                      {done && <i className="fa-solid fa-check text-indigo-500 text-xs"></i>}
                    </div>
-                 ))}
+                 );
+               })}
                {selectedDayData.habits.length === 0 && selectedDayData.todos.length === 0 && (
                  <div className="text-center py-12 flex flex-col items-center gap-2">
                    <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-200">
