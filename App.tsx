@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { format, parseISO, isToday, isBefore, startOfToday, compareAsc } from 'date-fns';
+import { format, parseISO, isToday, isBefore, startOfToday, compareAsc, compareDesc, subDays, getDay } from 'date-fns';
 import { Habit, Todo, UserProfile, Milestone } from './types';
 import HabitCard from './components/HabitCard';
 import TodoCard from './components/TodoCard';
@@ -10,7 +10,6 @@ import TodoForm from './components/TodoForm';
 import StatsView from './components/StatsView';
 import CalendarView from './components/CalendarView';
 import ProfileView from './components/ProfileView';
-import SocialView from './components/SocialView';
 import AvatarPicker from './components/AvatarPicker';
 
 export const MILESTONES: Milestone[] = [
@@ -33,12 +32,8 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('zenhabits_profile');
     return saved ? JSON.parse(saved) : { username: '旅人', avatar: '👤', points: 0, unlockedBadges: [] };
   });
-  const [friends, setFriends] = useState<string[]>(() => {
-    const saved = localStorage.getItem('zenhabits_friends');
-    return saved ? JSON.parse(saved) : [];
-  });
 
-  const [activeTab, setActiveTab] = useState<'today' | 'stats' | 'calendar' | 'social' | 'profile'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'stats' | 'calendar' | 'profile'>('today');
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [isHabitFormOpen, setIsHabitFormOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
@@ -49,6 +44,7 @@ const App: React.FC = () => {
   
   const [isAvatarPickerOpen, setIsAvatarPickerOpen] = useState(false);
   const [isActionSheetOpen, setIsActionSheetOpen] = useState(false);
+  const [showCompletedTodos, setShowCompletedTodos] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('zenhabits_habits', JSON.stringify(habits));
@@ -128,30 +124,58 @@ const App: React.FC = () => {
 
   const currentHabit = useMemo(() => habits.find(h => h.id === selectedHabitId), [habits, selectedHabitId]);
   
-  // Logic: Show all incomplete todos + completed todos of current selected date
-  const homeTodos = useMemo(() => {
-    const today = startOfToday();
-    const list = todos.filter(t => {
-      if (t.isCompleted) {
-        return t.date === selectedDate; // Show completed only for the "currently focused day"
-      }
-      return true; // Show all incomplete ones
-    });
-    return list.sort((a, b) => compareAsc(parseISO(a.date), parseISO(b.date)));
-  }, [todos, selectedDate]);
+  const pendingTodos = useMemo(() => {
+    return todos
+      .filter(t => !t.isCompleted)
+      .sort((a, b) => compareAsc(parseISO(a.date), parseISO(b.date)));
+  }, [todos]);
 
-  const habitCompletedCount = habits.filter(h => h.completedDays.includes(selectedDate)).length;
+  const completedRecentTodos = useMemo(() => {
+    const sevenDaysAgo = subDays(startOfToday(), 7);
+    return todos
+      .filter(t => {
+        const todoDate = parseISO(t.date);
+        return t.isCompleted && todoDate >= sevenDaysAgo;
+      })
+      .sort((a, b) => compareDesc(parseISO(a.date), parseISO(b.date)));
+  }, [todos]);
+
+  const dailyProgress = useMemo(() => {
+    const dateStr = selectedDate;
+    const dayOfWeek = getDay(parseISO(dateStr));
+    
+    const dailyActiveHabits = habits.filter(h => {
+      if (h.frequency === 'daily') return true;
+      if (h.frequency === 'weekly_days') return h.frequencyConfig.days?.includes(dayOfWeek);
+      return h.completedDays.includes(dateStr);
+    });
+
+    const completedHabits = dailyActiveHabits.filter(h => h.completedDays.includes(dateStr)).length;
+    const dailyTodos = todos.filter(t => t.date === dateStr);
+    const completedTodos = dailyTodos.filter(t => t.isCompleted).length;
+
+    const total = dailyActiveHabits.length + dailyTodos.length;
+    const completed = completedHabits + completedTodos;
+    const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+    let message = '开启元气满满的一天';
+    if (percentage > 0) message = '继续加油';
+    if (percentage > 50) message = '已过半，真棒';
+    if (percentage >= 100 && total > 0) message = '今日达成！';
+
+    return { total, completed, percentage, message };
+  }, [habits, todos, selectedDate]);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 pb-24 font-sans selection:bg-indigo-100">
       <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-slate-100 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-            <i className="fa-solid fa-feather-pointed"></i>
+            <i className="fa-solid fa-droplet"></i>
           </div>
           <div>
-            <h1 className="text-lg font-black tracking-tight text-slate-800">ZenHabits</h1>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Stay Focused</p>
+            <h1 className="text-lg font-black tracking-tight text-slate-800">晨露清单</h1>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">静谧自律 · 此时此刻</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -172,7 +196,7 @@ const App: React.FC = () => {
         ) : (
           <>
             {activeTab === 'today' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-2xl font-black text-slate-800 tracking-tight">
@@ -187,53 +211,89 @@ const App: React.FC = () => {
                     className="bg-indigo-600 text-white px-5 py-3 rounded-2xl text-xs font-black shadow-lg shadow-indigo-100 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
                   >
                     <i className="fa-solid fa-plus"></i>
-                    添加任务
+                    添加
                   </button>
                 </div>
 
-                {/* Specific Todos Section - Now shows all upcoming */}
+                <section className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">
+                        {dailyProgress.percentage}%
+                      </span>
+                      <span className="text-[11px] font-bold text-slate-500">{dailyProgress.message}</span>
+                    </div>
+                    <span className="text-[10px] font-black text-slate-300 uppercase">
+                      {dailyProgress.completed} / {dailyProgress.total} 任务
+                    </span>
+                  </div>
+                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-indigo-600 rounded-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(79,70,229,0.3)]"
+                      style={{ width: `${dailyProgress.percentage}%` }}
+                    />
+                  </div>
+                </section>
+
                 <section className="space-y-4">
                   <div className="flex items-center justify-between px-1">
                     <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       <i className="fa-solid fa-calendar-check text-amber-500"></i>
-                      特定待办
+                      待办事项
                     </h3>
-                    {homeTodos.filter(t => !t.isCompleted).length > 0 && (
-                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                        {homeTodos.filter(t => !t.isCompleted).length} 条待办
-                      </span>
-                    )}
                   </div>
+                  
                   <div className="space-y-3">
-                    {homeTodos.length === 0 ? (
+                    {pendingTodos.length === 0 && completedRecentTodos.length === 0 ? (
                       <div className="py-8 bg-white/50 border-2 border-dashed border-slate-100 rounded-3xl flex flex-col items-center justify-center">
                         <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">暂无计划事项</p>
                       </div>
                     ) : (
-                      homeTodos.map(todo => (
-                        <TodoCard 
-                          key={todo.id} 
-                          todo={todo} 
-                          onToggle={() => handleToggleTodo(todo.id)}
-                          onEdit={() => { setEditingTodo(todo); setIsTodoFormOpen(true); }}
-                        />
-                      ))
+                      <>
+                        {pendingTodos.map(todo => (
+                          <TodoCard 
+                            key={todo.id} 
+                            todo={todo} 
+                            onToggle={() => handleToggleTodo(todo.id)}
+                            onEdit={() => { setEditingTodo(todo); setIsTodoFormOpen(true); }}
+                          />
+                        ))}
+                        
+                        {completedRecentTodos.length > 0 && (
+                          <div className="pt-2">
+                            <button 
+                              onClick={() => setShowCompletedTodos(!showCompletedTodos)}
+                              className="flex items-center gap-2 px-2 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                            >
+                              <i className={`fa-solid ${showCompletedTodos ? 'fa-chevron-down' : 'fa-chevron-right'} text-[8px]`}></i>
+                              最近完成 ({completedRecentTodos.length})
+                            </button>
+                            
+                            {showCompletedTodos && (
+                              <div className="space-y-3 mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                {completedRecentTodos.map(todo => (
+                                  <TodoCard 
+                                    key={todo.id} 
+                                    todo={todo} 
+                                    onToggle={() => handleToggleTodo(todo.id)}
+                                    onEdit={() => { setEditingTodo(todo); setIsTodoFormOpen(true); }}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </section>
 
-                {/* Habits Section */}
                 <section className="space-y-4">
                    <div className="flex items-center justify-between px-1">
                     <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       <i className="fa-solid fa-repeat text-indigo-500"></i>
                       日常习惯
                     </h3>
-                    {habits.length > 0 && (
-                      <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                        {habitCompletedCount}/{habits.length}
-                      </span>
-                    )}
                   </div>
                   <div className="space-y-3">
                     {habits.length === 0 ? (
@@ -266,19 +326,6 @@ const App: React.FC = () => {
                 onEditTodo={(todo) => { setEditingTodo(todo); setIsTodoFormOpen(true); }}
               />
             )}
-            {activeTab === 'social' && (
-              <SocialView 
-                currentUser={profile.username}
-                friends={friends}
-                onInviteFriend={(name) => {
-                  const reqs = JSON.parse(localStorage.getItem('zenhabits_requests') || '[]');
-                  reqs.push({ from: profile.username, to: name, status: 'pending', timestamp: Date.now() });
-                  localStorage.setItem('zenhabits_requests', JSON.stringify(reqs));
-                  alert('已发送申请');
-                }}
-                onAcceptInvite={(name) => setFriends(prev => [...prev, name])}
-              />
-            )}
             {activeTab === 'profile' && (
               <ProfileView 
                 profile={profile} 
@@ -296,7 +343,6 @@ const App: React.FC = () => {
           { id: 'today', icon: 'fa-calendar-day' },
           { id: 'stats', icon: 'fa-chart-pie' },
           { id: 'calendar', icon: 'fa-calendar-week' },
-          { id: 'social', icon: 'fa-user-group' },
           { id: 'profile', icon: 'fa-user' }
         ].map(tab => (
           <button 

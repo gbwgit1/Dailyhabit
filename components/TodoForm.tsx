@@ -133,21 +133,27 @@ const TodoForm: React.FC<TodoFormProps> = ({ initialDate, editingTodo, onClose, 
                   const isSelected = date === dateStr;
                   const isCurrentMonth = format(day, 'MM') === format(viewMonth, 'MM');
                   const isPast = isBefore(day, startOfToday());
+                  const isDisabled = isPast && !isSelected; // Allow currently selected even if past
 
                   return (
                     <button
                       key={idx}
                       type="button"
-                      disabled={isPast && !isSelected}
+                      disabled={isDisabled}
                       onClick={() => setDate(dateStr)}
                       className={`relative aspect-square rounded-xl flex items-center justify-center text-[11px] font-bold transition-all
-                        ${isSelected ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100 scale-110 z-10' : 'hover:bg-white text-slate-600'}
+                        ${isSelected ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 scale-110 z-20' : 'hover:bg-white text-slate-600'}
                         ${!isCurrentMonth ? 'opacity-20' : 'opacity-100'}
-                        ${isPast && !isSelected ? 'text-slate-200 cursor-not-allowed' : ''}
+                        ${isDisabled ? 'text-slate-200 grayscale cursor-not-allowed opacity-10' : 'cursor-pointer'}
                       `}
                     >
+                      {isSelected && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center shadow-sm border border-indigo-100 animate-in zoom-in duration-300">
+                           <i className="fa-solid fa-check text-indigo-600 text-[6px]"></i>
+                        </div>
+                      )}
                       {isToday(day) && !isSelected && (
-                        <div className="absolute top-1 right-1 w-1 h-1 rounded-full bg-rose-500" />
+                        <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-rose-500 ring-2 ring-white" />
                       )}
                       {format(day, 'd')}
                     </button>
@@ -156,9 +162,9 @@ const TodoForm: React.FC<TodoFormProps> = ({ initialDate, editingTodo, onClose, 
               </div>
             </div>
             
-            <div className="flex items-center gap-2 px-2 text-[10px] font-bold text-indigo-500">
-              <i className="fa-solid fa-clock-rotate-left"></i>
-              <span>已选: {format(parseISO(date), 'yyyy-MM-dd')}</span>
+            <div className="flex items-center gap-2 px-2 text-[10px] font-bold text-indigo-500 bg-indigo-50/50 w-fit py-1 rounded-lg border border-indigo-100/50">
+              <i className="fa-solid fa-calendar-check"></i>
+              <span>已选: {format(parseISO(date), 'yyyy年M月d日')}</span>
             </div>
           </div>
 

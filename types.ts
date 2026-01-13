@@ -27,6 +27,7 @@ export interface Habit {
     days?: number[]; // 0-6 for weekly_days (0 is Sunday)
     count?: number; // for weekly_count
   };
+  reminderTime?: string; // "HH:mm" format
   createdAt: number;
 }
 
